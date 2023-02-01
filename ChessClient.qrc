@@ -1,0 +1,19 @@
+<RCC>
+  <qresource prefix="ChatClient">
+    <file>assets/killable.png</file>
+    <file>assets/available.png</file>
+    <file>assets/board.png</file>
+    <file>assets/b_b.png</file>
+    <file>assets/b_w.png</file>
+    <file>assets/k_b.png</file>
+    <file>assets/k_w.png</file>
+    <file>assets/kn_b.png</file>
+    <file>assets/kn_w.png</file>
+    <file>assets/p_b.png</file>
+    <file>assets/p_w.png</file>
+    <file>assets/q_b.png</file>
+    <file>assets/q_w.png</file>
+    <file>assets/r_b.png</file>
+    <file>assets/r_w.png</file>
+  </qresource>
+</RCC>
