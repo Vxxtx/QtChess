@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessClient", "ChessClient.vcxproj", "{0B41A4C3-9A2D-49D6-929B-3CA9BC36C703}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessClient", "ChessClient\ChessClient.vcxproj", "{0B41A4C3-9A2D-49D6-929B-3CA9BC36C703}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessServer", "ChatServer\ChessServer.vcxproj", "{9385BB3F-F8C7-4208-9667-5AA52D80E803}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChessServer", "ChessServer\ChessServer.vcxproj", "{9385BB3F-F8C7-4208-9667-5AA52D80E803}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
