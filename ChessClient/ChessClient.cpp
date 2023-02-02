@@ -6,6 +6,7 @@
 
 #include "qthread.h"
 #include <QListWidgetItem>
+#include "ConnectionStatics.h"
 
 ChessClient::ChessClient(QWidget *parent, const QString& Username)
     : QMainWindow(parent)
@@ -14,6 +15,10 @@ ChessClient::ChessClient(QWidget *parent, const QString& Username)
 
     ui_main.setupUi(this);
     
+    // Fix board size
+    QPixmap BoardImg("assets/board.png");
+    ui_main.board->setPixmap(BoardImg.scaled(ui_main.board->width(), ui_main.board->height(), Qt::KeepAspectRatio));
+
     connect(ui_main.send_btn, &QPushButton::pressed, this, &ChessClient::SendMsg);
 
     ConnectionThread = new QThread();
@@ -22,11 +27,11 @@ ChessClient::ChessClient(QWidget *parent, const QString& Username)
 
     connect(ConnectionThread, &QThread::started, Connection, &ClientConnection::Init);
     connect(Connection, &ClientConnection::MessageReceived, this, &ChessClient::ConnectionMessageReceived);
-    connect(this, &ChessClient::MsgSent, Connection, &ClientConnection::SendMsgFromClient);
+    connect(Connection, &ClientConnection::OnPlayerIDGot, this, &ChessClient::InitBoard);
+    connect(Connection, &ClientConnection::OnPiecePositionUpdate, this, &ChessClient::UpdatePiecePosition);
+    
 
     ConnectionThread->start();
-
-    InitBoard();
 }
 
 ChessClient::~ChessClient()
@@ -47,50 +52,68 @@ bool ChessClient::IsAnyChessPieceInSlot(int InX, int InY, ChessPiece*& FirstHit)
     return bBlocking;
 }
 
-void ChessClient::InitBoard()
+void ChessClient::MovePiece(int MovedPieceIdx, int X, int Y)
 {
-    // Fix board size
-    QPixmap BoardImg("assets/board.png");
-    ui_main.board->setPixmap(BoardImg.scaled(ui_main.board->width(), ui_main.board->height(), Qt::KeepAspectRatio));
+    SendString = ConnectionStatics::PrepareString("pm", QString("%1:%2:%3").arg(MovedPieceIdx).arg(X).arg(Y));
+}
 
-    // Black side
+void ChessClient::InitBoard(int PlayerID)
+{
+    bool bIsDark = (PlayerID == 0 ? ESide::Light : ESide::Dark) == ESide::Dark;
+
+    // Spawn chess pieces in the following way to ensure indices are same for all players
+    
+    // Dark side
     // Spawn special units
     for (int i = 0; i < 8; i++) {
-        ChessPiece* NewPawn = new ChessPiece(this, SpawnData[i].PawnType, BoardVector2D(SpawnData[i].PosX, 1));
-        NewPawn->SetSide(ESide::Black);
-        ChessPieces.push_back(NewPawn);
+        ChessPiece* NewPiece = new ChessPiece(this, SpawnData[i].PieceType, BoardVector2D(SpawnData[i].PosX, bIsDark ? 8 : 1), ESide::Dark, bIsDark);
+        ChessPieces.push_back(NewPiece);
     }
 
     // Spawn pawns
     for (int i = 0; i < 8; i++) {
-        ChessPiece* NewPawn = new ChessPiece(this, EPawnType::Pawn, BoardVector2D(i + 1, 2));
-        NewPawn->SetSide(ESide::Black);
-        ChessPieces.push_back(NewPawn);
+        ChessPiece* NewPiece = new ChessPiece(this, EPieceType::Pawn, BoardVector2D(i + 1, bIsDark ? 7 : 2), ESide::Dark, bIsDark);
+        ChessPieces.push_back(NewPiece);
     }
-
+    
     // White side
     // Spawn special units
     for (int i = 0; i < 8; i++) {
-        ChessPiece* NewPawn = new ChessPiece(this, SpawnData[i].PawnType, BoardVector2D(SpawnData[i].PosX, 8));
-        NewPawn->SetSide(ESide::White);
-        ChessPieces.push_back(NewPawn);
+        ChessPiece* NewPiece = new ChessPiece(this, SpawnData[i].PieceType, BoardVector2D(SpawnData[i].PosX, !bIsDark ? 8 : 1), ESide::Light, !bIsDark);
+        ChessPieces.push_back(NewPiece);
     }
 
     // Spawn pawns
     for (int i = 0; i < 8; i++) {
-        ChessPiece* NewPawn = new ChessPiece(this, EPawnType::Pawn, BoardVector2D(i + 1, 7));
-        NewPawn->SetSide(ESide::White);
-        ChessPieces.push_back(NewPawn);
+        ChessPiece* NewPiece = new ChessPiece(this, EPieceType::Pawn, BoardVector2D(i + 1, !bIsDark ? 7 : 2), ESide::Light, !bIsDark);
+        ChessPieces.push_back(NewPiece);
+    }
+}
+
+void ChessClient::UpdatePiecePosition(int MovedPieceIdx, int X, int Y)
+{
+    ChessPiece* Piece = ChessPieces[MovedPieceIdx];
+    ChessPiece* HitPiece = nullptr;
+
+    // Flip Y if piece is not own
+    Y = Piece->IsOwn() ? Y : 9 - Y;
+
+    if (Piece) {
+        if (IsAnyChessPieceInSlot(X, Y, HitPiece)) {
+            HitPiece->Kill();
+        }
+
+        ChessPieces[MovedPieceIdx]->SetPosition(X, Y);
     }
 }
 
 void ChessClient::SendMsg()
 {
     QString Msg = ui_main.send_edit->toPlainText();
-    SendString = Msg;
+    SendString = ConnectionStatics::PrepareString("msg", Msg);
 }
 
-void ChessClient::ConnectionMessageReceived(const QString & Msg)
+void ChessClient::ConnectionMessageReceived(const QString& Msg)
 {
     qDebug() << "DEBUG: " << Msg << "\n";
 

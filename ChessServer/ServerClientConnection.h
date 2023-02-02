@@ -4,8 +4,9 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
 #include <qobject.h>
+
+#include "ConnectionStatics.h"
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -20,7 +21,7 @@ class ServerClientConnection : public QObject
 public:
 	ServerClientConnection();
 
-	void Init(SOCKET InSocket, const QString& InUsername, ListenerConnection* InListener);
+	void Init(SOCKET InSocket, const QString& InUsername, ListenerConnection* InListener, int InPlayerID);
 	void Start();
 
 signals:
@@ -30,9 +31,10 @@ private:
 	SOCKET Socket {INVALID_SOCKET};
 	QString Username;
 	ListenerConnection* Listener {nullptr};
+	int PlayerID {0};
 
 	void SendMsg(const QString& Msg);
-
+	
 public:
 	inline SOCKET GetSocket() { return Socket; };
 };

@@ -15,7 +15,10 @@ protected:
     void mousePressEvent(QMouseEvent* event);
 
 public:
-    ChessPiece* RelatedPiece;
-    int PosX, PosY;
+    ChessPiece* RelatedPiece {nullptr};
+    ChessPiece* PieceInSlot {nullptr};
+
+    int PosX {1};
+    int PosY {1};
 };
 

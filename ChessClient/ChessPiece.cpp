@@ -2,19 +2,18 @@
 #include "ChessClient.h"
 #include <qapplication.h>
 
-ChessPiece::ChessPiece(ChessClient* Window, const EPawnType& InPawnType, const BoardVector2D& InitPosition)
-	: PawnType(InPawnType)
+ChessPiece::ChessPiece(ChessClient* Window, const EPieceType& InPawnType, const BoardVector2D& InitPosition, const ESide& InSide, bool bInIsOwn)
+	: MainWindow(Window), PawnType(InPawnType), Side(InSide), bIsOwn(bInIsOwn)
 {
-	MainWindow = Window;
 	// Initialize label
 	WidgetObject = new ClickableLabel(Window);
 	WidgetObject->resize(59, 59);	
 
-	// Set color based on position (wont work because sides are flipped for opponent)
-	QPixmap PawnImg(QString("assets/%1_%2.png").arg(PawnAssetData.at(PawnType)).arg(InitPosition.Y > 6 ? "w" : "b"));
+	QPixmap PawnImg(QString("assets/%1_%2.png").arg(PawnAssetData.at(PawnType)).arg(InSide == ESide::Light ? "w" : "b"));
 	WidgetObject->setPixmap(PawnImg.scaled(WidgetObject->width(), WidgetObject->height(), Qt::KeepAspectRatio));
 
 	SetPosition(InitPosition.X, InitPosition.Y);
+	WidgetObject->show();
 
 	connect(WidgetObject, &ClickableLabel::clicked, this, &ChessPiece::OnSelected);
 }
@@ -50,7 +49,27 @@ void ChessPiece::MoveTo(int X, int Y)
 
 	MainWindow->VisibleAvailableSlots.clear();
 
-	SetPosition(X, Y);
+	//SetPosition(X, Y);
+
+	int PieceIdx = -1;
+	for (int i = 0; i < MainWindow->ChessPieces.size(); i++) {
+		if (MainWindow->ChessPieces[i] == this) {
+			PieceIdx = i; 
+			break;
+		}
+	}
+
+	if (PieceIdx == -1) return;
+	MainWindow->MovePiece(PieceIdx, X, Y);
+}
+
+void ChessPiece::Kill()
+{
+	if (WidgetObject) {
+		delete WidgetObject;
+	}
+
+	delete this;
 }
 
 void ChessPiece::OnSelected()
@@ -61,13 +80,15 @@ void ChessPiece::OnSelected()
 
 	MainWindow->VisibleAvailableSlots.clear();
 
+	if (!bIsOwn) return;
+
 	std::vector<BoardVector2D> Slots;
 	std::vector<ChessPiece*> Killable;
 
 	GetAvailablePlaces(Slots, Killable);
 
 	for (const BoardVector2D& Vec : Slots) {
-		if (Vec.X > 8 || Vec.X < 1 || Vec.Y > 8 || Vec.Y < 0) { continue; }
+		if (Vec.X > 8 || Vec.X < 1 || Vec.Y > 8 || Vec.Y < 0) continue;
 
 		AvailableSlot* SlotLabel = new AvailableSlot(MainWindow);
 		SlotLabel->RelatedPiece = this;
@@ -90,6 +111,7 @@ void ChessPiece::OnSelected()
 
 		AvailableSlot* SlotLabel = new AvailableSlot(MainWindow);
 		SlotLabel->RelatedPiece = this;
+		SlotLabel->PieceInSlot = Piece;
 		SlotLabel->PosX = Piece->GetPosition().X;
 		SlotLabel->PosY = Piece->GetPosition().Y;
 
@@ -108,24 +130,24 @@ void ChessPiece::OnSelected()
 void ChessPiece::GetAvailablePlaces(std::vector<BoardVector2D>& OutPlaces, std::vector<ChessPiece*>& OutKillable)
 {
 	switch (PawnType) {
-	case EPawnType::King:
-		// Right and Left
-		// TODO: ADD SLOT USED CHECKING TO EVERYTHING THAT DOESNT USE ADDITERATEDSLOTS
-		OutPlaces.push_back(BoardVector2D(Position.X + 1, Position.Y));
-		OutPlaces.push_back(BoardVector2D(Position.X - 1, Position.Y));
+	case EPieceType::King:
+		// Iterate X and Y
+		for (int x = -1; x < 2; x++) {
+			for (int y = -1; y < 2; y++) {
+				if (x == 0 && y == 0) continue;
 
-		// Up and Down
-		OutPlaces.push_back(BoardVector2D(Position.X, Position.Y + 1));
-		OutPlaces.push_back(BoardVector2D(Position.X, Position.Y - 1));
+				ChessPiece* FirstHit = nullptr;
+				if (MainWindow->IsAnyChessPieceInSlot(Position.X + x, Position.Y + y, FirstHit)) {
+					OutKillable.push_back(FirstHit);
+					continue;
+				}
 
-		// Top and bottom left and right
-		OutPlaces.push_back(BoardVector2D(Position.X + 1, Position.Y + 1));
-		OutPlaces.push_back(BoardVector2D(Position.X - 1, Position.Y + 1));
-		OutPlaces.push_back(BoardVector2D(Position.X + 1, Position.Y - 1));
-		OutPlaces.push_back(BoardVector2D(Position.X - 1, Position.Y - 1));
+				OutPlaces.push_back(BoardVector2D(Position.X + x, Position.Y + y));
+			}
+		}
 		break;
 
-	case EPawnType::Queen:
+	case EPieceType::Queen:
 		// X right
 		AddIteratedSlots(1, 0, OutPlaces, OutKillable);
 
@@ -151,40 +173,60 @@ void ChessPiece::GetAvailablePlaces(std::vector<BoardVector2D>& OutPlaces, std::
 		AddIteratedSlots(-1, 1, OutPlaces, OutKillable);
 		break;
 
-	case EPawnType::Rook:
+	case EPieceType::Rook:
 		AddIteratedSlots(1, 0, OutPlaces, OutKillable);
 		AddIteratedSlots(-1, 0, OutPlaces, OutKillable);
 		AddIteratedSlots(0, 1, OutPlaces, OutKillable);
 		AddIteratedSlots(0, -1, OutPlaces, OutKillable);
 		break;
 		
-	case EPawnType::Bishop:
+	case EPieceType::Bishop:
 		AddIteratedSlots(1, -1, OutPlaces, OutKillable);
 		AddIteratedSlots(1, 1, OutPlaces, OutKillable);
 		AddIteratedSlots(-1, 1, OutPlaces, OutKillable);
 		AddIteratedSlots(-1, -1, OutPlaces, OutKillable);
 		break;
 
-	case EPawnType::Knight:
-		// Up/down
-		OutPlaces.push_back(BoardVector2D(Position.X + 1, Position.Y + 2));
-		OutPlaces.push_back(BoardVector2D(Position.X - 1, Position.Y + 2));
-		OutPlaces.push_back(BoardVector2D(Position.X + 1, Position.Y - 2));
-		OutPlaces.push_back(BoardVector2D(Position.X - 1, Position.Y - 2));
+	case EPieceType::Knight:
+		// Iterate X and Y axes
+		for (int x = -2; x < 3; x++) {
+			for (int y = -2; y < 3; y++) {
+				if (abs(x) == 1 && abs(y) == 2 || abs(x) == 2 && abs(y) == 1) {
+					ChessPiece* FirstHit = nullptr;
+					if (MainWindow->IsAnyChessPieceInSlot(Position.X + x, Position.Y + y, FirstHit)) {
+						OutKillable.push_back(FirstHit);
+						continue;
+					}
 
-		// Left/right
-		OutPlaces.push_back(BoardVector2D(Position.X + 2, Position.Y + 1));
-		OutPlaces.push_back(BoardVector2D(Position.X - 2, Position.Y + 1));
-		OutPlaces.push_back(BoardVector2D(Position.X + 2, Position.Y - 1));
-		OutPlaces.push_back(BoardVector2D(Position.X - 2, Position.Y - 1));
+					OutPlaces.push_back(BoardVector2D(Position.X + x, Position.Y + y));
+				}
+			}
+		}
 		break;
 
-	case EPawnType::Pawn:
-		OutPlaces.push_back(BoardVector2D(Position.X, Position.Y - 1));
+	case EPieceType::Pawn:
+		ChessPiece* FirstHit = nullptr;
+		ChessPiece* SecondHit = nullptr;
+
+		if (!MainWindow->IsAnyChessPieceInSlot(Position.X, Position.Y - 1, FirstHit)) {
+			OutPlaces.push_back(BoardVector2D(Position.X, Position.Y - 1));
+		}
 
 		// If in starting position
-		if (Position.Y == 7 || Position.Y == 2)
-		OutPlaces.push_back(BoardVector2D(Position.X, Position.Y - 2));
+		if (Position.Y == 7) {
+			if (!MainWindow->IsAnyChessPieceInSlot(Position.X, Position.Y - 2, FirstHit)) {
+				OutPlaces.push_back(BoardVector2D(Position.X, Position.Y - 2));
+			}
+		}
+		
+		// Check diagonal slots for enemy units
+		if (MainWindow->IsAnyChessPieceInSlot(Position.X + 1, Position.Y - 1, FirstHit)) {
+			OutKillable.push_back(FirstHit);
+		}
+
+		if (MainWindow->IsAnyChessPieceInSlot(Position.X - 1, Position.Y - 1, SecondHit)) {
+			OutKillable.push_back(SecondHit);
+		}
 		break;
 	}
 }

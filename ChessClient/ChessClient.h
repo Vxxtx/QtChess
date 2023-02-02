@@ -8,11 +8,11 @@
 
 class ClientConnection;
 
-struct PawnSpawnData {
-    PawnSpawnData(const EPawnType& InPawnType, int X)
-        : PawnType(InPawnType), PosX(X) {}
+struct PieceSpawnData {
+    PieceSpawnData(const EPieceType& InPieceType, int X)
+        : PieceType(InPieceType), PosX(X) {}
 
-    EPawnType PawnType;
+    EPieceType PieceType;
     int PosX;
 };
 
@@ -26,15 +26,19 @@ public:
 
 signals:
     void MsgSent(const QString& Msg);
+    void OnPieceMoved(int MovedPieceIdx, int X, int Y);
 
 public slots:
     void ConnectionMessageReceived(const QString& Msg);
+    void InitBoard(int PlayerID);
+    void UpdatePiecePosition(int MovedPieceIdx, int X, int Y);
 
 public:
     std::vector<AvailableSlot*> VisibleAvailableSlots {};
     std::vector<ChessPiece*> ChessPieces;
 
     bool IsAnyChessPieceInSlot(int X, int Y, ChessPiece*& FirstHit);
+    void MovePiece(int MovedPieceIdx, int X, int Y);
 
 private:
     Ui::chess_main ui_main;
@@ -46,17 +50,16 @@ private:
 
     QString SendString;
     
-    const PawnSpawnData SpawnData[8] {
-        PawnSpawnData(EPawnType::Rook, 1),
-        PawnSpawnData(EPawnType::Knight, 2),
-        PawnSpawnData(EPawnType::Bishop, 3),
-        PawnSpawnData(EPawnType::Queen, 4),
-        PawnSpawnData(EPawnType::King, 5),
-        PawnSpawnData(EPawnType::Bishop, 6),
-        PawnSpawnData(EPawnType::Knight, 7),
-        PawnSpawnData(EPawnType::Rook, 8)
+    const PieceSpawnData SpawnData[8] {
+        PieceSpawnData(EPieceType::Rook, 1),
+        PieceSpawnData(EPieceType::Knight, 2),
+        PieceSpawnData(EPieceType::Bishop, 3),
+        PieceSpawnData(EPieceType::Queen, 4),
+        PieceSpawnData(EPieceType::King, 5),
+        PieceSpawnData(EPieceType::Bishop, 6),
+        PieceSpawnData(EPieceType::Knight, 7),
+        PieceSpawnData(EPieceType::Rook, 8)
     };
 
-    void InitBoard();
     void SendMsg();
 };

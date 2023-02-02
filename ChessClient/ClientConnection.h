@@ -27,13 +27,18 @@ public:
 public slots:
 	void Init();
 	void SendMsgFromClient(const QString& Message);
+	void SendChessPieceData(int PieceIdx, int X, int Y);
 
 signals:
 	void MessageReceived(const QString& Message);
+	void OnPlayerIDGot(int InPlayerID);
+	void OnPiecePositionUpdate(int PieceIdx, int X, int Y);
 
 private:
 	void SendMsg(const QString& Message);
 
 	SOCKET ConnectSocket = INVALID_SOCKET;
 	QString Username;
+
+	int PlayerID {0};
 };

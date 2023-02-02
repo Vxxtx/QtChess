@@ -78,6 +78,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugServer|x64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
   </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'" Label="Configuration">
     <ClCompile>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
@@ -118,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectionStatics.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServerClientConnection.cpp" />
     <ClCompile Include="ListenerConnection.cpp" />
@@ -127,6 +133,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="ServerClientConnection.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ConnectionStatics.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

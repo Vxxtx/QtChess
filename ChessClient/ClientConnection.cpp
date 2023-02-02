@@ -1,4 +1,5 @@
 #include "ClientConnection.h"
+#include "ConnectionStatics.h"
 
 ClientConnection::ClientConnection(const QString& InUsername, QString& isendstr)
     : sendstr(isendstr)
@@ -83,13 +84,11 @@ void ClientConnection::Init()
         return false;
     }*/
 
-    const char* zero = "1";
+    const char* one = "1";
     
     while (true) {
-
         if (sendstr != "") {
-            QString ToSend = QString("msg;%1;%2").arg(sendstr.length()).arg(sendstr);
-            Result = send(ConnectSocket, qPrintable(ToSend), ToSend.size(), 0);
+            Result = send(ConnectSocket, qPrintable(sendstr), sendstr.size(), 0);
             sendstr = "";
         }
 
@@ -97,21 +96,30 @@ void ClientConnection::Init()
 
         if (Result > 0) {
             if (QString(recvbuf[0]) == "1") {
-                send(ConnectSocket, zero, sizeof(zero), 0);
+                send(ConnectSocket, one, sizeof(one), 0);
                 continue;
             }
             
-            QString Reply = QString::fromUtf8(recvbuf);
+            // Remember to send a reply back so the server's socket doesn't get stuck in recv!!!
             
-            if (Reply.contains("msg;")) {
-                QString SplitMsg = Reply.split("msg;")[1];
-                QStringList SplitMsgData = SplitMsg.split(";");
-                QString FinalMsg = QString("%1").arg(SplitMsgData[1].mid(0, SplitMsgData[0].toInt()));
+            QString Reply = QString::fromUtf8(recvbuf);
+            MsgData Data = ConnectionStatics::ResolveString(Reply);
 
-                qDebug() << "1" << SplitMsg;
-                SendMsg(FinalMsg);
+            if (Reply.contains("msg;")) {
+                SendMsg(Data.String);
+                send(ConnectSocket, one, sizeof(one), 0);
             }
 
+            if (Reply.contains("pid")) {
+                OnPlayerIDGot(PlayerID = Data.String.toInt());
+                send(ConnectSocket, one, sizeof(one), 0);
+            }
+
+            if (Reply.contains("pm")) {
+                QStringList Params = Data.String.split(":");
+                emit OnPiecePositionUpdate(Params[0].toInt(), Params[1].toInt(), Params[2].toInt());
+                send(ConnectSocket, one, sizeof(one), 0);
+            }
         }
     }
     
@@ -126,42 +134,24 @@ void ClientConnection::SendMsg(const QString& Message)
 
 void ClientConnection::SendMsgFromClient(const QString& Message)
 {
-
-    
-
-    char recvbuf[DEFAULT_BUFLEN];
-    int recvbuflen = DEFAULT_BUFLEN;
-
    if (ConnectSocket == INVALID_SOCKET) {
-        SendMsg(QString("Unable to connect to server."));
+        SendMsg(QString("Could not reach server."));
         WSACleanup();
         return;
     }
 
-    QString MsgFinal = QString("msg;%1").arg(Message);
+    QString Msg = ConnectionStatics::PrepareString("msg", Message);
+    send(ConnectSocket, qPrintable(Msg), Msg.size(), 0);
+}
 
-    int Result = send(ConnectSocket, qPrintable(MsgFinal), (int)MsgFinal.length(), 0);
-
-    if (Result == SOCKET_ERROR) {
-        SendMsg(QString("Send failed with err: %1").arg(WSAGetLastError()));
-        closesocket(ConnectSocket);
+void ClientConnection::SendChessPieceData(int PieceIdx, int X, int Y)
+{
+    if (ConnectSocket == INVALID_SOCKET) {
+        SendMsg(QString("Could not reach server."));
         WSACleanup();
         return;
     }
 
-    /*while (true) {
-        Result = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-
-        if (Result > 0) {
-            SendMsg(QString("Bytes received: %1").arg(Result));
-            break;
-        }
-        else if (Result == 0) {
-            SendMsg(QString("Connection closed"));
-        }
-        else {
-            SendMsg(QString("recv failed with err: %1").arg(WSAGetLastError()));
-        }
-    }
-    SendMsg(QString("Sent message"));*/
+    QString Msg = ConnectionStatics::PrepareString("pm", QString("%1:%2:%3").arg(PieceIdx).arg(X).arg(Y));
+    send(ConnectSocket, qPrintable(Msg), Msg.size(), 0);
 }

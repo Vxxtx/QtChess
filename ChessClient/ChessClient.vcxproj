@@ -132,6 +132,7 @@
     <ClCompile Include="ChessClient.cpp" />
     <ClCompile Include="ChessEntry.cpp" />
     <ClCompile Include="ClientConnection.cpp" />
+    <ClCompile Include="ConnectionStatics.cpp" />
     <ClCompile Include="main.cpp" />
     <QtUic Include="ClientEntry.ui" />
   </ItemGroup>
@@ -149,6 +150,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AvailableSlot.h" />
+    <ClInclude Include="ConnectionStatics.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

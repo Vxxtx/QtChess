@@ -6,11 +6,12 @@ ServerClientConnection::ServerClientConnection()
 {
 }
 
-void ServerClientConnection::Init(SOCKET InSocket, const QString& InUsername, ListenerConnection* InListener)
+void ServerClientConnection::Init(SOCKET InSocket, const QString& InUsername, ListenerConnection* InListener, int InPlayerID)
 {
 	Socket = InSocket;
 	Username = InUsername;
 	Listener = InListener;
+	PlayerID = InPlayerID;
 }
 
 void ServerClientConnection::Start()
@@ -23,8 +24,11 @@ void ServerClientConnection::Start()
 
 	const char* one = "1";
 
-	QString JoinStr = QString("%1;%2 joined").arg(7 + Username.length()).arg(Username);
+	QString JoinStr = ConnectionStatics::PrepareString("msg", QString("%1 joined").arg(Username));
 	Listener->SendMulticastMessage(JoinStr);
+
+	QString PidStr = ConnectionStatics::PrepareString("pid", QString::number(PlayerID));
+	send(Socket, qPrintable(PidStr), PidStr.size(), 0);
 
 	while (true) {
 		Result = recv(Socket, recvbuf, recvbuflen, 0);
@@ -35,17 +39,17 @@ void ServerClientConnection::Start()
 				continue;
 			}
 
-			QString FinalString = QString(recvbuf);
-			
-			if (FinalString.contains("msg;")) {
-				std::vector<ServerClientConnection*> Clients;
-				Listener->GetClients(Clients);
+			QString ReceivedString = QString(recvbuf);
+			MsgData Data = ConnectionStatics::ResolveString(ReceivedString);
 
-				QStringList SplitStr = FinalString.split(";");
-				QString Msg = QString("%1: %2").arg(Username).arg(SplitStr[2].mid(0, SplitStr[1].toInt()));
-				FinalString = QString("%1;%2").arg(Msg.length()).arg(Msg);
+			if (ReceivedString.contains("msg;")) {
+				QString Msg = ConnectionStatics::PrepareString("msg", QString("%1: %2").arg(Username).arg(Data.String));
+				
+				Listener->SendMulticastMessage(Msg);
+			}
 
-				Listener->SendMulticastMessage(FinalString);
+			if (ReceivedString.contains("pm;")) {
+				Listener->SendMulticastMessage(ReceivedString);
 			}
 		}
 	}

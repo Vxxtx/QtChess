@@ -20,7 +20,7 @@ public:
 	};
 };
 
-enum class EPawnType {
+enum class EPieceType {
 	King, 
 	Queen, 
 	Rook,
@@ -30,8 +30,8 @@ enum class EPawnType {
 };
 
 enum class ESide {
-	White,
-	Black
+	Light,
+	Dark
 };
 
 class ChessPiece : public QObject
@@ -39,7 +39,7 @@ class ChessPiece : public QObject
 	Q_OBJECT
 
 public:
-	ChessPiece(ChessClient* Window, const EPawnType& InPawnType, const BoardVector2D& InitPosition);
+	ChessPiece(ChessClient* Window, const EPieceType& InPawnType, const BoardVector2D& InitPosition, const ESide& InSide, bool bInIsOwn);
 
 	void SetPosition(int X, int Y);
 	void SetPosition(const BoardVector2D& Pos);
@@ -49,23 +49,27 @@ public:
 
 	inline void SetSide(const ESide& InSide) { Side = InSide; };
 	inline ESide GetSide() { return Side; };
+	inline bool IsOwn() { return bIsOwn; };
+
+	void Kill();
 
 private:
 	ClickableLabel* WidgetObject {nullptr};
 	ChessClient* MainWindow {nullptr};
 
-	const std::map<EPawnType, QString> PawnAssetData{
-		{EPawnType::King, "k"},
-		{EPawnType::Queen, "q"},
-		{EPawnType::Rook, "r"},
-		{EPawnType::Bishop, "b"},
-		{EPawnType::Knight, "kn"},
-		{EPawnType::Pawn, "p"},
+	const std::map<EPieceType, QString> PawnAssetData{
+		{EPieceType::King, "k"},
+		{EPieceType::Queen, "q"},
+		{EPieceType::Rook, "r"},
+		{EPieceType::Bishop, "b"},
+		{EPieceType::Knight, "kn"},
+		{EPieceType::Pawn, "p"},
 	};
 
-	EPawnType PawnType {EPawnType::Pawn};
-	ESide Side {ESide::White};
+	EPieceType PawnType {EPieceType::Pawn};
+	ESide Side {ESide::Light};
 	BoardVector2D Position {1, 1};
+	bool bIsOwn {false};
 
 	void OnSelected();
 

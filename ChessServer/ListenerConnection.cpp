@@ -127,7 +127,7 @@ bool ListenerConnection::Init()
 
 			QThread* NewThread = new QThread();
 			ServerClientConnection* NewConnection = new ServerClientConnection();
-			NewConnection->Init(ClientSocket, Username, this);
+			NewConnection->Init(ClientSocket, Username, this, Connections.size());
 			NewConnection->moveToThread(NewThread);
 
 			connect(NewThread, &QThread::started, NewConnection, &ServerClientConnection::Start);
@@ -158,10 +158,8 @@ bool ListenerConnection::Init()
 
 void ListenerConnection::SendMulticastMessage(const QString& Message)
 {
-	QString FinalString = QString("msg;%1").arg(Message);
-
 	for (int i = 0; i < Connections.size(); i++) {
-		int SendResult = send(Connections[i]->GetSocket(), qPrintable(FinalString), FinalString.size(), 0);
+		int SendResult = send(Connections[i]->GetSocket(), qPrintable(Message), Message.size(), 0);
 
 		if (SendResult == SOCKET_ERROR) {
 			SendMsg(QString("send failed with error: %1\n").arg(WSAGetLastError()));
